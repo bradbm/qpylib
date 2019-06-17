@@ -19,11 +19,11 @@ from Crypto.Protocol import KDF
 # engine version to make decisions on how to handle secrets
 class Encryption(object):
     engine_version = 3
+    APP_UUID_ENV_VARIABLE = 'QRADAR_APP_UUID'
     def __init__(self, data):
         if 'name' not in data or 'user' not in data or data['name'] == '' or data['user'] == '':
             raise ValueError("Encryption : name and user are mandatory fields!")
-        self.APP_UUID_ENV_VARIABLE = 'QRADAR_APP_UUID'
-        if self.APP_UUID_ENV_VARIABLE not in os.environ:
+        if not self.encryption_available():
             raise KeyError("Encryption : {0} not available in environment".format(self.APP_UUID_ENV_VARIABLE))
         self.name = data['name']
         self.user_id = data['user']
@@ -151,8 +151,8 @@ class Encryption(object):
         if 'secret' not in self.config[self.name]:
             raise ValueError("Encryption : no secret to decrypt")
 
-        if self.config[self.name].get('version') != Encryption.engine_version:
-            raise ValueError("Encryption : secret engine mismatch. Secret was stored with version {}, attempted to decrypt with version {}.".format(self.config[self.name].get('version') , Encryption.engine_version))
+        if self.saved_secret_version != Encryption.engine_version:
+            raise ValueError("Encryption : secret engine mismatch. Secret was stored with version {}, attempted to decrypt with version {}.".format(self.saved_secret_version, Encryption.engine_version))
 
         try:
             return self.__decrypt_string(self.config[self.name]['secret'])
@@ -160,3 +160,18 @@ class Encryption(object):
         except Exception as error:  # pylint: disable=W0703
             qpylib.log('encdec : decrypt : Failed to decrypt secret : {0}'.format(error))
             return str('')
+
+    def saved_secret_version(self):
+        """ Return the version of the secret engine this was stored with"""
+        return self.config[self.name].get('version')
+
+    def secret_name(self):
+        return self.name
+
+    @staticmethod
+    def encryption_available():
+        if Encryption.APP_UUID_ENV_VARIABLE not in os.environ:
+            return True
+        else:
+            return False
+

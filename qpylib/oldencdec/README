@@ -1,0 +1,3 @@
+These old versions of encdec are intended to be used for migrating old data
+that is why the encrypt functions have been removed. You should only use the
+latest version of encdec (in the parent directory) to save secrets
